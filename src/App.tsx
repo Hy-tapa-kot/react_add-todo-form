@@ -14,7 +14,7 @@ interface Todo {
 export const App = () => {
   const [todos, setTodos] = useState<Todo[]>(todosFromServer);
   const [title, setTitle] = useState<string>('');
-  const [userId, setUserId] = useState<string>('0');
+  const [userId, setUserId] = useState<number>(0);  // Changed to number
   const [errors, setErrors] = useState<{ title: boolean; user: boolean }>({
     title: false,
     user: false,
@@ -25,7 +25,7 @@ export const App = () => {
 
     const newErrors = {
       title: title.trim() === '',
-      user: userId === '0',
+      user: userId === 0,
     };
 
     setErrors(newErrors);
@@ -34,13 +34,13 @@ export const App = () => {
     const newTodo: Todo = {
       id: Math.max(0, ...todos.map((todo) => todo.id)) + 1,
       title: title.trim().replace(/[^a-zA-Zа-яА-ЯёЁіІїЇєЄ0-9 ]/g, ''),
-      userId: Number(userId),
+      userId: userId,
       completed: false,
     };
 
     setTodos([...todos, newTodo]);
     setTitle('');
-    setUserId('0');
+    setUserId(0);
   };
 
   return (
@@ -49,7 +49,7 @@ export const App = () => {
 
       <form onSubmit={handleAddTodo}>
         <div className="field">
-          Title:
+          <label htmlFor="title">Title:</label>
           <input
             type="text"
             data-cy="titleInput"
@@ -64,20 +64,20 @@ export const App = () => {
         </div>
 
         <div className="field">
-          User:
+          <label htmlFor="user">User:</label>
           <select
             data-cy="userSelect"
             value={userId}
             onChange={(e) => {
-              setUserId(e.target.value);
+              setUserId(Number(e.target.value));  // Convert to number
               setErrors((prev) => ({ ...prev, user: false }));
             }}
           >
-            <option value="0" disabled>
+            <option value={0} disabled>
               Choose a user
             </option>
             {usersFromServer.map((user) => (
-              <option key={user.id} value={user.id.toString()}>
+              <option key={user.id} value={user.id}>
                 {user.name}
               </option>
             ))}
@@ -91,18 +91,24 @@ export const App = () => {
       </form>
 
       <section className="TodoList">
-        {todos.map((todo) => (
-          <article
-            key={todo.id}
-            data-id={todo.id}
-            className={`TodoInfo ${todo.completed ? 'TodoInfo--completed' : ''}`}
-          >
-            <h2 className="TodoInfo__title">{todo.title}</h2>
-            <a className="UserInfo" href={`mailto:${usersFromServer.find(user => user.id === todo.userId)?.email}`}>
-              {usersFromServer.find(user => user.id === todo.userId)?.name}
-            </a>
-          </article>
-        ))}
+        {todos.map((todo) => {
+          const user = usersFromServer.find(user => user.id === todo.userId);
+          const userEmail = user ? user.email : 'default@example.com';  // Fallback email
+          const userName = user ? user.name : 'Unknown User';
+
+          return (
+            <article
+              key={todo.id}
+              data-id={todo.id}
+              className={`TodoInfo ${todo.completed ? 'TodoInfo--completed' : ''}`}
+            >
+              <h2 className="TodoInfo__title">{todo.title}</h2>
+              <a className="UserInfo" href={`mailto:${userEmail}`}>
+                {userName}
+              </a>
+            </article>
+          );
+        })}
       </section>
     </div>
   );
