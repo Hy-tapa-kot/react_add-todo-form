@@ -4,15 +4,25 @@ import './App.scss'
 import todosFromServer from './api/todos'
 import usersFromServer from './api/users'
 
+interface User {
+  id: number;
+  name: string;
+  username: string;
+  email: string;
+}
+
 interface Todo {
   id: number;
   title: string;
-  userId: number;
+  user: User;  // Storing the full user object instead of just userId
   completed: boolean;
 }
 
 export const App = () => {
-  const [todos, setTodos] = useState<Todo[]>(todosFromServer);
+  const [todos, setTodos] = useState<Todo[]>(todosFromServer.map(todo => ({
+    ...todo,
+    user: usersFromServer.find(user => user.id === todo.userId) || { id: 0, name: 'Unknown User', username: 'Unknown', email: '' },
+  })));  // Mapping todos to include the full user object
   const [title, setTitle] = useState<string>('');
   const [userId, setUserId] = useState<number>(0);  // Changed to number
   const [errors, setErrors] = useState<{ title: boolean; user: boolean }>({
@@ -31,10 +41,13 @@ export const App = () => {
     setErrors(newErrors);
     if (newErrors.title || newErrors.user) return;
 
+    const selectedUser = usersFromServer.find(user => user.id === userId);
+    if (!selectedUser) return;  // Handle the case where the user is not found
+
     const newTodo: Todo = {
       id: Math.max(0, ...todos.map((todo) => todo.id)) + 1,
       title: title.trim().replace(/[^a-zA-Zа-яА-ЯёЁіІїЇєЄ0-9 ]/g, ''),
-      userId: userId,
+      user: selectedUser,  // Storing the full user object
       completed: false,
     };
 
@@ -92,9 +105,9 @@ export const App = () => {
 
       <section className="TodoList">
         {todos.map((todo) => {
-          const user = usersFromServer.find(user => user.id === todo.userId);
-          const userEmail = user ? user.email : 'default@example.com';  // Fallback email
-          const userName = user ? user.name : 'Unknown User';
+          const { user } = todo;
+          const userEmail = user.email || 'default@example.com';  // Fallback email
+          const userName = user.name || 'Unknown User';
 
           return (
             <article
